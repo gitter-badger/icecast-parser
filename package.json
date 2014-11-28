@@ -29,5 +29,8 @@
     "url": "https://github.com/ghaiklor/icecast-parser/issues",
     "email": "ghaiklor@gmail.com"
   },
-  "homepage": "https://github.com/ghaiklor/icecast-parser"
+  "homepage": "https://github.com/ghaiklor/icecast-parser",
+  "dependencies": {
+    "stream-parser": "^0.3.0"
+  }
 }
