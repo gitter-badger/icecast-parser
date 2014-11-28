@@ -9,15 +9,15 @@ fs.readFile(path.resolve(__dirname, 'stations.csv'), function (error, data) {
     for (var i = 0; i < data.length; i++) {
         var metadata = new Metadata(data[i]);
         metadata.on('metadata', function (metadata) {
-            console.log([metadata.StreamTitle, 'is playing on', this.getUrl()].join(' '));
+            console.log([metadata.StreamTitle, 'is playing on', this.getLink()].join(' '));
         });
 
         metadata.on('empty', function () {
-            console.log(['Radio station', this.getUrl(), 'has empty metadata'].join(' '));
+            console.log(['Radio station', this.getLink(), 'has empty metadata'].join(' '));
         });
 
         metadata.on('error', function () {
-            console.log(['Radio station', this.getUrl(), 'has reject connection'].join(' '));
+            console.log(['Radio station', this.getLink(), 'has reject connection'].join(' '));
         });
     }
 });
