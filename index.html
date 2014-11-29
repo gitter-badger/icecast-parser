@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>icecast-parser by ghaiklor</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>icecast-parser</h1>
+        <h2>NodeJS module for getting and parsing metadata from SHOUTcast/Icecast radio streams</h2>
+        <a href="https://github.com/ghaiklor/icecast-parser" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h1>
+
+<ul>
+<li>Opens async connection to URL and gets response with radio stream and metadata. Then pipes response to Transform stream for processing;</li>
+<li>Getting metadata from stream is realized in Transform stream, so you can pipe radio station stream to another Writeable\Duplex\Transform stream;</li>
+<li>Once metadata is recieved, <code>metadata</code> event triggers with metadata object;</li>
+<li>After metadata is received, connection to radio station closes automatically, so you will not spent a lot of traffic;</li>
+<li>But you can set <code>keepListen</code> flag in config object and continue listening radio station;</li>
+<li>Autoupdating metadata from radiostation by interval in economical way (connection is opens when time has come);</li>
+<li>Metadata parsed as object with key-value;</li>
+<li>When you create new instance, you get EventEmitter. So you can subscribe to other events;</li>
+<li>Easy to configure and use.</li>
+</ul>
+
+<h1>
+<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h1>
+
+<p>You can install icecast-parser from npm.</p>
+
+<div class="highlight highlight-shell"><pre>npm install icecast-parser</pre></div>
+
+<p>Get your first metadata from radio station.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-s">var</span> Metadata <span class="pl-k">=</span> <span class="pl-s3">require</span>(<span class="pl-s1"><span class="pl-pds">'</span>icecast-parser<span class="pl-pds">'</span></span>);
+
+<span class="pl-s">var</span> metadata <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Metadata</span>(<span class="pl-s1"><span class="pl-pds">'</span>http://streaming.radionomy.com/HammerHeadRadio<span class="pl-pds">'</span></span>);
+metadata.on(<span class="pl-s1"><span class="pl-pds">'</span>metadata<span class="pl-pds">'</span></span>, <span class="pl-st">function</span>(<span class="pl-vpf">metadata</span>) {
+    <span class="pl-en">console</span><span class="pl-s3">.log</span>([metadata.StreamTitle, <span class="pl-s1"><span class="pl-pds">'</span>is playing on<span class="pl-pds">'</span></span>, <span class="pl-v">this</span>.getLink()].<span class="pl-s3">join</span>(<span class="pl-s1"><span class="pl-pds">'</span> <span class="pl-pds">'</span></span>));
+});</pre></div>
+
+<h1>
+<a id="configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h1>
+
+<p>You can provide additional parameters to constructor:</p>
+
+<ul>
+<li>
+<code>keepListen</code> - by default <code>false</code>. If you set to <code>true</code>, then response from radio station is not destroys and you can pipe it to another streams.</li>
+<li>
+<code>autoUpdate</code> - by default <code>false</code>. If you set to <code>true</code>, then metadata will be updates with interval and notifies you about new metadata;</li>
+<li>
+<code>errorInterval</code> - by default <code>300</code> s. You can set interval in seconds when next try will be executed if connection was refused or rejected. Works only if <code>autoUpdate</code> is enabled.</li>
+<li>
+<code>emptyInterval</code> - by default <code>180</code> s. You can set interval in seconds when next try will be executed if metadata is empty. Works only if <code>autoUpdate</code> is enabled.</li>
+<li>
+<code>metadataInterval</code> - by default <code>10</code> s. You can set interval in seconds when will be next update of metadata. Works only if <code>autoUpdate</code> is enabled.</li>
+</ul>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-s">var</span> Metadata <span class="pl-k">=</span> <span class="pl-s3">require</span>(<span class="pl-s1"><span class="pl-pds">'</span>icecast-parser<span class="pl-pds">'</span></span>);
+
+<span class="pl-s">var</span> metadata <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Metadata</span>(<span class="pl-s1"><span class="pl-pds">'</span>http://streaming.radionomy.com/HammerHeadRadio<span class="pl-pds">'</span></span>, {
+    keepListen<span class="pl-k">:</span> <span class="pl-c1">false</span>, <span class="pl-c">// don't listen radio station after metadata was received</span>
+    autoUpdate<span class="pl-k">:</span> <span class="pl-c1">true</span>, <span class="pl-c">// update metadata after interval</span>
+    errorInterval<span class="pl-k">:</span> <span class="pl-c1">5</span> <span class="pl-k">*</span> <span class="pl-c1">60</span>, <span class="pl-c">// retry connection after 5 minutes</span>
+    emptyInterval<span class="pl-k">:</span> <span class="pl-c1">3</span> <span class="pl-k">*</span> <span class="pl-c1">60</span>, <span class="pl-c">// retry get metadata after 3 minutes</span>
+    metadataInterval<span class="pl-k">:</span> <span class="pl-c1">10</span> <span class="pl-c">// update metadata after 10 seconds</span>
+});
+
+metadata.on(<span class="pl-s1"><span class="pl-pds">'</span>metadata<span class="pl-pds">'</span></span>, <span class="pl-st">function</span>(<span class="pl-vpf">metadata</span>) {
+    <span class="pl-en">console</span><span class="pl-s3">.log</span>(<span class="pl-s1"><span class="pl-pds">'</span>Here you will receive metadata each 10 seconds<span class="pl-pds">'</span></span>);
+    <span class="pl-en">console</span><span class="pl-s3">.log</span>(metadata.StreamTitle);
+});</pre></div>
+
+<h1>
+<a id="events" class="anchor" href="#events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h1>
+
+<p>You can subscribe to 4 events - <code>error</code>, <code>empty</code>, <code>metadata</code>, <code>stream</code>.</p>
+
+<ul>
+<li>
+<code>error</code> event triggers when connection to radio station was refused, rejected or timed out;</li>
+<li>
+<code>empty</code> event triggers when connection was established successful, but radio station returns empty metadata;</li>
+<li>
+<code>metadata</code> event triggers when connection was established successful and metadata is parsed successful;</li>
+<li>
+<code>stream</code> event triggers when response from radio station returned and successfully piped to Transform stream.</li>
+</ul>
+
+<div class="highlight highlight-javascript"><pre><span class="pl-s">var</span> Metadata <span class="pl-k">=</span> <span class="pl-s3">require</span>(<span class="pl-s1"><span class="pl-pds">'</span>icecast-parser<span class="pl-pds">'</span></span>);
+
+<span class="pl-s">var</span> metadata <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">Metadata</span>(<span class="pl-s1"><span class="pl-pds">'</span>http://streaming.radionomy.com/HammerHeadRadio<span class="pl-pds">'</span></span>, {
+    keepListen<span class="pl-k">:</span> <span class="pl-c1">true</span>
+});
+
+metadata.on(<span class="pl-s1"><span class="pl-pds">'</span>error<span class="pl-pds">'</span></span>, <span class="pl-st">function</span>() {
+    <span class="pl-en">console</span><span class="pl-s3">.log</span>([<span class="pl-s1"><span class="pl-pds">'</span>Connection to<span class="pl-pds">'</span></span>, <span class="pl-v">this</span>.getLink(), <span class="pl-s1"><span class="pl-pds">'</span>was rejected<span class="pl-pds">'</span></span>].<span class="pl-s3">join</span>(<span class="pl-s1"><span class="pl-pds">'</span> <span class="pl-pds">'</span></span>));
+});
+
+metadata.on(<span class="pl-s1"><span class="pl-pds">'</span>empty<span class="pl-pds">'</span></span>, <span class="pl-st">function</span>() {
+    <span class="pl-en">console</span><span class="pl-s3">.log</span>([<span class="pl-s1"><span class="pl-pds">'</span>Radio station<span class="pl-pds">'</span></span>, <span class="pl-v">this</span>.getLink(), <span class="pl-s1"><span class="pl-pds">'</span>doesn<span class="pl-cce">\'</span>t have metadata<span class="pl-pds">'</span></span>].<span class="pl-s3">join</span>(<span class="pl-s1"><span class="pl-pds">'</span> <span class="pl-pds">'</span></span>));
+});
+
+metadata.on(<span class="pl-s1"><span class="pl-pds">'</span>metadata<span class="pl-pds">'</span></span>, <span class="pl-st">function</span>(<span class="pl-vpf">metadata</span>) {
+    <span class="pl-en">console</span><span class="pl-s3">.log</span>(metadata.StreamTitle);
+});
+
+metadata.on(<span class="pl-s1"><span class="pl-pds">'</span>stream<span class="pl-pds">'</span></span>, <span class="pl-st">function</span>(<span class="pl-vpf">stream</span>) {
+    stream.pipe(<span class="pl-sv">process</span>.stdout);
+});</pre></div>
+
+<h1>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>The MIT License (MIT)</p>
+
+<p>Copyright (c) 2014 Eugene Obrezkov</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</p>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/ghaiklor/icecast-parser/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/ghaiklor/icecast-parser/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/ghaiklor/icecast-parser"></a> is maintained by <a href="https://github.com/ghaiklor">ghaiklor</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
