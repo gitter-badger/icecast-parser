@@ -3,6 +3,8 @@ Version 1.1.0
 
 - Small improvements in code style;
 - Realized queuing of requests;
+- Implemented auto updating of metadata in economy mode;
+- Added configuration object where you can set intervals for auto update (error, empty, metadata);
 
 Version 1.0.0
 ===
