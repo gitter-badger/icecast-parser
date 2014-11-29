@@ -8,14 +8,16 @@ util.inherits(Metadata, EventEmitter);
 
 /**
  * Create new Metadata instance
- * @param {String|Object} options Radio station url or object with additional parameters
+ * @param {String} url Radio station url
+ * @param {Object} config Object with additional parameters
  * @constructor
  * @private
  */
-function Metadata(options) {
+function Metadata(url, config) {
     EventEmitter.call(this);
 
-    this.setLink(options);
+    this.setLink(url);
+    this.setConfig(config);
     this.queueRequest(0);
 }
 
@@ -25,6 +27,13 @@ function Metadata(options) {
  * @private
  */
 Metadata.prototype._executeRequest = function () {
+    // TODO: clean up
+    var queueRequest = function (timeout) {
+        if (this.getConfig('autoUpdate')) {
+            this.queueRequest(timeout);
+        }
+    }.bind(this);
+
     var self = this,
         request = http.request(self.getLink());
 
@@ -35,17 +44,20 @@ Metadata.prototype._executeRequest = function () {
         if (metaint) {
             var reader = new Reader(metaint);
             reader.on('metadata', function (metadata) {
+                queueRequest(self.getConfig('metadataInterval'));
                 self.emit('metadata', new Parser(metadata).parse());
                 response.destroy();
             });
             response.pipe(reader);
         } else {
+            queueRequest(self.getConfig('emptyInterval'));
             self.emit('empty');
             response.destroy();
         }
     });
 
     request.once('error', function (error) {
+        queueRequest(self.getConfig('errorInterval'));
         self.emit('error', error);
     });
 
@@ -56,12 +68,12 @@ Metadata.prototype._executeRequest = function () {
 
 /**
  * Queue new request for update metadata
- * @param {Number} timeout Timeout for next updating in milliseconds
+ * @param {Number} timeout Timeout for next updating in seconds
  * @returns {Metadata}
  * @private
  */
 Metadata.prototype.queueRequest = function (timeout) {
-    setTimeout(this._executeRequest.bind(this), timeout);
+    setTimeout(this._executeRequest.bind(this), timeout * 1000);
     return this;
 };
 
@@ -70,7 +82,7 @@ Metadata.prototype.queueRequest = function (timeout) {
  * @returns {String} Returns radio station url
  */
 Metadata.prototype.getLink = function () {
-    return this.link;
+    return this._link;
 };
 
 /**
@@ -80,7 +92,38 @@ Metadata.prototype.getLink = function () {
  * @private
  */
 Metadata.prototype.setLink = function (link) {
-    this.link = link;
+    this._link = link;
+    return this;
+};
+
+/**
+ * Get configuration object or value of specified key
+ * @param {String} [key] Specify key if you want get specified option
+ * @returns {Object|*} Returns all object of options or value of specified key
+ */
+Metadata.prototype.getConfig = function (key) {
+    if (key) {
+        return this._config[key];
+    } else {
+        return this._config;
+    }
+};
+
+/**
+ * Set configuration object
+ * @param {Object} config
+ * @returns {Metadata}
+ */
+Metadata.prototype.setConfig = function (config) {
+    config = config || {};
+
+    this._config = {
+        autoUpdate: typeof config.autoUpdate === 'boolean' ? config.autoUpdate : false,
+        errorInterval: config.errorInterval || 5 * 60,
+        emptyInterval: config.emptyInterval || 3 * 60,
+        metadataInterval: config.metadataInterval || 10
+    };
+
     return this;
 };
 
