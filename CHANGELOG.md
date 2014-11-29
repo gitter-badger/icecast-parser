@@ -2,6 +2,7 @@ Version 1.1.0
 ===
 
 - Small improvements in code style;
+- Realized queuing of requests;
 
 Version 1.0.0
 ===

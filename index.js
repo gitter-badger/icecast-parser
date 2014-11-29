@@ -20,48 +20,54 @@ function Metadata(options) {
 }
 
 /**
+ * Start processing request to radio station and grab metadata
+ * @returns {Metadata}
+ * @private
+ */
+Metadata.prototype._executeRequest = function () {
+    var self = this,
+        request = http.request(self.getLink());
+
+    request.setHeader('Icy-MetaData', '1');
+    request.once('response', function (response) {
+        var metaint = response.headers['icy-metaint'];
+
+        if (metaint) {
+            var reader = new Reader(metaint);
+            reader.on('metadata', function (metadata) {
+                self.emit('metadata', new Parser(metadata).parse());
+                response.destroy();
+            });
+            response.pipe(reader);
+        } else {
+            self.emit('empty');
+            response.destroy();
+        }
+    });
+
+    request.once('error', function (error) {
+        self.emit('error', error);
+    });
+
+    request.end();
+
+    return this;
+};
+
+/**
  * Queue new request for update metadata
  * @param {Number} timeout Timeout for next updating in milliseconds
  * @returns {Metadata}
  * @private
  */
 Metadata.prototype.queueRequest = function (timeout) {
-    var self = this;
-
-    setTimeout(function () {
-        var request = http.request(self.getLink());
-        request.setHeader('Icy-MetaData', '1');
-
-        request.once('response', function (response) {
-            var metaint = response.headers['icy-metaint'];
-
-            if (metaint) {
-                var reader = new Reader(metaint);
-                reader.on('metadata', function (metadata) {
-                    self.emit('metadata', new Parser(metadata).parse());
-                    response.destroy();
-                });
-                response.pipe(reader);
-            } else {
-                self.emit('empty');
-                response.destroy();
-            }
-        });
-
-        request.once('error', function (error) {
-            self.emit('error', error);
-        });
-
-        request.end();
-    }, timeout);
-
+    setTimeout(this._executeRequest.bind(this), timeout);
     return this;
 };
 
 /**
  * Get url from where metadata is getting
  * @returns {String} Returns radio station url
- * @private
  */
 Metadata.prototype.getLink = function () {
     return this.link;
