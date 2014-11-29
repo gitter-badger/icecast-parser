@@ -8,10 +8,11 @@ fs.readFile(path.resolve(__dirname, 'stations.csv'), function (error, data) {
     data = data.toString().split('\n');
     for (var i = 0; i < data.length; i++) {
         var metadata = new Metadata(data[i], {
+            keepListen: false,
             autoUpdate: true,
-            errorInterval: 10,
-            emptyInterval: 5,
-            metadataInterval: 2
+            errorInterval: 20,
+            emptyInterval: 10,
+            metadataInterval: 5
         });
 
         metadata.on('metadata', function (metadata) {

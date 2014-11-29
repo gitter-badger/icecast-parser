@@ -1,3 +1,12 @@
+Version 1.2.0
+===
+
+- Cleaning up in index;
+- Implemented get\set for reader stream, so you can pipe in\out metadata stream;
+- Implemented `keepListen` option. If `true` connection not closing and keep listen radio station;
+- Add `stream` event so you can get stream when it will be available;
+- Fix bug when `keepListen` and `autoUpdate` enabled at once (request overflow);
+
 Version 1.1.0
 ===
 

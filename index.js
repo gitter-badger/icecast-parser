@@ -22,55 +22,78 @@ function Metadata(url, config) {
 }
 
 /**
+ * Triggers when request successful and returns Readable stream
+ * @param {IncomingMessage|Stream} response
+ * @private
+ */
+Metadata.prototype._onRequestResponse = function (response) {
+    var self = this,
+        metaint = response.headers['icy-metaint'];
+
+    if (metaint) {
+        this.setStream(new Reader(metaint));
+        this.getStream().on('metadata', function (metadata) {
+            self._destroyResponse(response);
+            self._queueNextRequest(self.getConfig('metadataInterval'));
+            self.emit('metadata', new Parser(metadata).parse());
+        });
+        response.pipe(this.getStream());
+    } else {
+        this._destroyResponse(response);
+        this._queueNextRequest(this.getConfig('emptyInterval'));
+        this.emit('empty');
+    }
+};
+
+/**
+ * Triggers when request was executed with error
+ * @param error
+ * @private
+ */
+Metadata.prototype._onRequestError = function (error) {
+    this._queueNextRequest(this.getConfig('errorInterval'));
+    this.emit('error', error);
+};
+
+/**
+ * Destroy response if not need keep listening
+ * @param {IncomingMessage} response
+ * @private
+ */
+Metadata.prototype._destroyResponse = function (response) {
+    if (!this.getConfig('keepListen')) {
+        response.destroy();
+    }
+};
+
+/**
  * Start processing request to radio station and grab metadata
  * @returns {Metadata}
  * @private
  */
 Metadata.prototype._executeRequest = function () {
-    // TODO: clean up
-    var queueRequest = function (timeout) {
-        if (this.getConfig('autoUpdate')) {
-            this.queueRequest(timeout);
-        }
-    }.bind(this);
-
-    var self = this,
-        request = http.request(self.getLink());
-
+    var request = http.request(this.getLink());
     request.setHeader('Icy-MetaData', '1');
-    request.once('response', function (response) {
-        var metaint = response.headers['icy-metaint'];
-
-        if (metaint) {
-            var reader = new Reader(metaint);
-            reader.on('metadata', function (metadata) {
-                queueRequest(self.getConfig('metadataInterval'));
-                self.emit('metadata', new Parser(metadata).parse());
-                response.destroy();
-            });
-            response.pipe(reader);
-        } else {
-            queueRequest(self.getConfig('emptyInterval'));
-            self.emit('empty');
-            response.destroy();
-        }
-    });
-
-    request.once('error', function (error) {
-        queueRequest(self.getConfig('errorInterval'));
-        self.emit('error', error);
-    });
-
+    request.once('response', this._onRequestResponse.bind(this));
+    request.once('error', this._onRequestError.bind(this));
     request.end();
+};
 
-    return this;
+/**
+ * Check if auto updating is enabled and queue new request
+ * @param {Number} timeout Timeout for new request in seconds
+ * @private
+ */
+Metadata.prototype._queueNextRequest = function (timeout) {
+    if (this.getConfig('autoUpdate') && !this.getConfig('keepListen')) {
+        this.queueRequest(timeout);
+    }
 };
 
 /**
  * Queue new request for update metadata
  * @param {Number} timeout Timeout for next updating in seconds
  * @returns {Metadata}
- * @private
  */
 Metadata.prototype.queueRequest = function (timeout) {
     setTimeout(this._executeRequest.bind(this), timeout * 1000);
@@ -89,7 +112,6 @@ Metadata.prototype.getLink = function () {
  * Set radio station link
  * @param {String} link URL of radio station
  * @returns {Metadata}
- * @private
  */
 Metadata.prototype.setLink = function (link) {
     this._link = link;
@@ -118,6 +140,7 @@ Metadata.prototype.setConfig = function (config) {
     config = config || {};
 
     this._config = {
+        keepListen: typeof config.keepListen === 'boolean' ? config.keepListen : false,
         autoUpdate: typeof config.autoUpdate === 'boolean' ? config.autoUpdate : false,
         errorInterval: config.errorInterval || 5 * 60,
         emptyInterval: config.emptyInterval || 3 * 60,
@@ -125,6 +148,23 @@ Metadata.prototype.setConfig = function (config) {
     };
 
     return this;
+};
+
+/**
+ * Get metadata stream
+ * @returns {Stream} Returns transform stream
+ */
+Metadata.prototype.getStream = function () {
+    return this._stream;
+};
+
+/**
+ * Set Transform stream to metadata
+ * @param {Stream|Reader} stream Transform or duplex stream
+ */
+Metadata.prototype.setStream = function (stream) {
+    this._stream = stream;
+    this.emit('stream', stream);
 };
 
 module.exports = Metadata;
