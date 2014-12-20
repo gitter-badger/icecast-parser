@@ -1,6 +1,8 @@
 icecast-parser
 ====
 
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ghaiklor/icecast-parser?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 NodeJS module for getting and parsing metadata from SHOUTcast/Icecast radio streams
 
 Features
